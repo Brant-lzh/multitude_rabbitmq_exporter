@@ -32,10 +32,11 @@ var (
 )
 
 type exporterNode struct {
+	config           *rabbitExporterConfig
 	nodeMetricsGauge map[string]*prometheus.GaugeVec
 }
 
-func newExporterNode() Exporter {
+func newExporterNode(config *rabbitExporterConfig) Exporter {
 	nodeGaugeVecActual := nodeGaugeVec
 
 	if len(config.ExcludeMetrics) > 0 {
@@ -47,6 +48,7 @@ func newExporterNode() Exporter {
 	}
 
 	return exporterNode{
+		config:           config,
 		nodeMetricsGauge: nodeGaugeVecActual,
 	}
 }
@@ -61,7 +63,7 @@ func (e exporterNode) Collect(ctx context.Context, ch chan<- prometheus.Metric) 
 		cluster = n
 	}
 
-	nodeData, err := getStatsInfo(config, "nodes", nodeLabelKeys)
+	nodeData, err := getStatsInfo(*e.config, "nodes", nodeLabelKeys)
 
 	if err != nil {
 		return err
@@ -74,7 +76,7 @@ func (e exporterNode) Collect(ctx context.Context, ch chan<- prometheus.Metric) 
 	for key, gauge := range e.nodeMetricsGauge {
 		for _, node := range nodeData {
 			if value, ok := node.metrics[key]; ok {
-				self := selfLabel(config, node.labels["name"] == selfNode)
+				self := selfLabel(*e.config, node.labels["name"] == selfNode)
 				gauge.WithLabelValues(cluster, node.labels["name"], self).Set(value)
 			}
 		}

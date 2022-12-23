@@ -28,6 +28,7 @@ var (
 )
 
 type exporterAliveness struct {
+	config           *rabbitExporterConfig
 	alivenessMetrics map[string]*prometheus.GaugeVec
 	alivenessInfo    AlivenessInfo
 }
@@ -38,7 +39,7 @@ type AlivenessInfo struct {
 	Reason string
 }
 
-func newExporterAliveness() Exporter {
+func newExporterAliveness(config *rabbitExporterConfig) Exporter {
 	alivenessGaugeVecActual := alivenessGaugeVec
 
 	if len(config.ExcludeMetrics) > 0 {
@@ -50,13 +51,14 @@ func newExporterAliveness() Exporter {
 	}
 
 	return &exporterAliveness{
+		config:           config,
 		alivenessMetrics: alivenessGaugeVecActual,
 		alivenessInfo:    AlivenessInfo{},
 	}
 }
 
 func (e *exporterAliveness) Collect(ctx context.Context, ch chan<- prometheus.Metric) error {
-	body, contentType, err := apiRequest(config, "aliveness-test")
+	body, contentType, err := apiRequest(*e.config, "aliveness-test")
 	if err != nil {
 		return err
 	}

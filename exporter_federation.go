@@ -16,11 +16,13 @@ var (
 )
 
 type exporterFederation struct {
+	config      *rabbitExporterConfig
 	stateMetric *prometheus.GaugeVec
 }
 
-func newExporterFederation() Exporter {
+func newExporterFederation(config *rabbitExporterConfig) Exporter {
 	return exporterFederation{
+		config:      config,
 		stateMetric: newGaugeVec("federation_state", "A metric with a value of constant '1' for each federation in a certain state", federationLabels),
 	}
 }
@@ -28,7 +30,7 @@ func newExporterFederation() Exporter {
 func (e exporterFederation) Collect(ctx context.Context, ch chan<- prometheus.Metric) error {
 	e.stateMetric.Reset()
 
-	federationData, err := getStatsInfo(config, "federation-links", federationLabelsKeys)
+	federationData, err := getStatsInfo(*e.config, "federation-links", federationLabelsKeys)
 	if err != nil {
 		return err
 	}

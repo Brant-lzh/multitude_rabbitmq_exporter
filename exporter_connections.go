@@ -26,11 +26,12 @@ var (
 )
 
 type exporterConnections struct {
+	config             *rabbitExporterConfig
 	connectionMetricsG map[string]*prometheus.GaugeVec
 	stateMetric        *prometheus.GaugeVec
 }
 
-func newExporterConnections() Exporter {
+func newExporterConnections(config *rabbitExporterConfig) Exporter {
 	connectionGaugeVecActual := connectionGaugeVec
 
 	if len(config.ExcludeMetrics) > 0 {
@@ -42,13 +43,15 @@ func newExporterConnections() Exporter {
 	}
 
 	return exporterConnections{
+		config:             config,
 		connectionMetricsG: connectionGaugeVecActual,
 		stateMetric:        newGaugeVec("connection_status", "Number of connections in a certain state aggregated per label combination.", connectionLabelsStateMetric),
 	}
 }
 
 func (e exporterConnections) Collect(ctx context.Context, ch chan<- prometheus.Metric) error {
-	rabbitConnectionResponses, err := getStatsInfo(config, "connections", connectionLabelKeys)
+	//rabbitConnectionResponses, err := getStatsInfo(config, "connections", connectionLabelKeys)
+	rabbitConnectionResponses, err := getStatsInfo(*e.config, "connections", connectionLabelKeys)
 
 	if err != nil {
 		return err

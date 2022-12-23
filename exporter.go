@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	exportersMu       sync.RWMutex
-	exporterFactories = make(map[string]func() Exporter)
+	exportersMu sync.RWMutex
+	//exporterFactories = make(map[string]func() Exporter)
+	exporterFactory = make(map[string]func(config *rabbitExporterConfig) Exporter)
 )
 
 type contextValues string
@@ -25,16 +26,18 @@ const (
 )
 
 //RegisterExporter makes an exporter available by the provided name.
-func RegisterExporter(name string, f func() Exporter) {
+func RegisterExporter(name string, f func(config *rabbitExporterConfig) Exporter) {
 	exportersMu.Lock()
 	defer exportersMu.Unlock()
 	if f == nil {
 		panic("exporterFactory is nil")
 	}
-	exporterFactories[name] = f
+	exporterFactory[name] = f
+	//exporterFactories[name] = f
 }
 
 type exporter struct {
+	config                       *rabbitExporterConfig
 	mutex                        sync.RWMutex
 	upMetric                     *prometheus.GaugeVec
 	endpointUpMetric             *prometheus.GaugeVec
@@ -50,20 +53,21 @@ type Exporter interface {
 	Describe(ch chan<- *prometheus.Desc)
 }
 
-func newExporter() *exporter {
+func newExporter(config *rabbitExporterConfig) *exporter {
 	enabledExporter := make(map[string]Exporter)
 	for _, e := range config.EnabledExporters {
-		if _, ok := exporterFactories[e]; ok {
-			enabledExporter[e] = exporterFactories[e]()
+		if _, ok := exporterFactory[e]; ok {
+			enabledExporter[e] = exporterFactory[e](config)
 		}
 	}
 
 	return &exporter{
+		config:                       config,
 		upMetric:                     newGaugeVec("up", "Was the last scrape of rabbitmq successful.", []string{"cluster", "node"}),
 		endpointUpMetric:             newGaugeVec("module_up", "Was the last scrape of rabbitmq successful per module.", []string{"cluster", "node", "module"}),
 		endpointScrapeDurationMetric: newGaugeVec("module_scrape_duration_seconds", "Duration of the last scrape in seconds", []string{"cluster", "node", "module"}),
 		exporter:                     enabledExporter,
-		overviewExporter:             newExporterOverview(),
+		overviewExporter:             newExporterOverview(config),
 		lastScrapeOK:                 true, //return true after start. Value will be updated with each scraping
 	}
 }
@@ -125,7 +129,7 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	e.upMetric.Collect(ch)
 	e.endpointUpMetric.Collect(ch)
 	e.endpointScrapeDurationMetric.Collect(ch)
-	log.WithField("duration", time.Since(start)).Info("Metrics updated")
+	log.WithField("duration", time.Since(start)).WithField("url", e.config.RabbitURL).Info("Metrics updated")
 
 }
 

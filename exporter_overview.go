@@ -38,6 +38,7 @@ var (
 )
 
 type exporterOverview struct {
+	config          *rabbitExporterConfig
 	overviewMetrics map[string]*prometheus.GaugeVec
 	nodeInfo        NodeInfo
 }
@@ -51,7 +52,7 @@ type NodeInfo struct {
 	TotalQueues     int
 }
 
-func newExporterOverview() *exporterOverview {
+func newExporterOverview(config *rabbitExporterConfig) *exporterOverview {
 	overviewMetricDescriptionActual := overviewMetricDescription
 
 	if len(config.ExcludeMetrics) > 0 {
@@ -63,6 +64,7 @@ func newExporterOverview() *exporterOverview {
 	}
 
 	return &exporterOverview{
+		config:          config,
 		overviewMetrics: overviewMetricDescriptionActual,
 		nodeInfo:        NodeInfo{},
 	}
@@ -73,7 +75,7 @@ func (e exporterOverview) NodeInfo() NodeInfo {
 }
 
 func (e *exporterOverview) Collect(ctx context.Context, ch chan<- prometheus.Metric) error {
-	body, contentType, err := apiRequest(config, "overview")
+	body, contentType, err := apiRequest(*e.config, "overview")
 	if err != nil {
 		return err
 	}

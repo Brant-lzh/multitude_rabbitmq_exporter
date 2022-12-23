@@ -7,3 +7,6 @@ coverage.out
 debug.test
 vendor/
 dist/
+config/
+deploy/
+Makefile

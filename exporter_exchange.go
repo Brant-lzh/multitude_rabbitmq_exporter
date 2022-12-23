@@ -30,10 +30,11 @@ var (
 )
 
 type exporterExchange struct {
+	config          *rabbitExporterConfig
 	exchangeMetrics map[string]*prometheus.Desc
 }
 
-func newExporterExchange() Exporter {
+func newExporterExchange(config *rabbitExporterConfig) Exporter {
 	exchangeCounterVecActual := exchangeCounterVec
 
 	if len(config.ExcludeMetrics) > 0 {
@@ -45,12 +46,13 @@ func newExporterExchange() Exporter {
 	}
 
 	return exporterExchange{
+		config:          config,
 		exchangeMetrics: exchangeCounterVecActual,
 	}
 }
 
 func (e exporterExchange) Collect(ctx context.Context, ch chan<- prometheus.Metric) error {
-	exchangeData, err := getStatsInfo(config, "exchanges", exchangeLabelKeys)
+	exchangeData, err := getStatsInfo(*e.config, "exchanges", exchangeLabelKeys)
 
 	if err != nil {
 		return err

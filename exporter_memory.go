@@ -129,10 +129,11 @@ var (
 )
 
 type exporterMemory struct {
+	config             *rabbitExporterConfig
 	memoryMetricsGauge map[string]*prometheus.GaugeVec
 }
 
-func newExporterMemory() Exporter {
+func newExporterMemory(config *rabbitExporterConfig) Exporter {
 	memoryGaugeVecActual := memoryGaugeVec
 
 	if len(config.ExcludeMetrics) > 0 {
@@ -144,6 +145,7 @@ func newExporterMemory() Exporter {
 	}
 
 	return exporterMemory{
+		config:             config,
 		memoryMetricsGauge: memoryGaugeVecActual,
 	}
 }
@@ -161,14 +163,14 @@ func (e exporterMemory) Collect(ctx context.Context, ch chan<- prometheus.Metric
 		cluster = n
 	}
 
-	nodeData, err := getStatsInfo(config, "nodes", nodeLabelKeys)
+	nodeData, err := getStatsInfo(*e.config, "nodes", nodeLabelKeys)
 	if err != nil {
 		return err
 	}
 
 	for _, node := range nodeData {
-		self := selfLabel(config, node.labels["name"] == selfNode)
-		rabbitMemoryResponses, err := getMetricMap(config, fmt.Sprintf("nodes/%s/memory", node.labels["name"]))
+		self := selfLabel(*e.config, node.labels["name"] == selfNode)
+		rabbitMemoryResponses, err := getMetricMap(*e.config, fmt.Sprintf("nodes/%s/memory", node.labels["name"]))
 		if err != nil {
 			return err
 		}

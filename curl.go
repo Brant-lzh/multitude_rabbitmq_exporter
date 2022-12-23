@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -22,4 +23,18 @@ func curl(url string) {
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+var errUnexpectedHttpCode = errors.New("Error checking url: Unexpected http code is not 200 ")
+
+func checkCurl(url string) error {
+	var client = &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errUnexpectedHttpCode
+	}
+	return nil
 }
