@@ -33,7 +33,7 @@ func main() {
 	//var checkURL = flag.String("check-url", "", "Curl url and return exit code (http: 200 => 0, otherwise 1)")
 	var configFile = flag.String("config-file", "conf/rabbitmq.conf", "path to json config")
 	flag.Parse()
-
+	log.WithFields(log.Fields{"config-file": *configFile}).Info()
 	//if *checkURL != "" { // do a single http get request. Used in docker healthckecks as curl is not inside the image
 	//	curl(*checkURL)
 	//	return
