@@ -8,13 +8,13 @@ COPY . /go/multitude_rabbitmq_exporter
 
 ENV GOPROXY https://goproxy.cn,direct
 
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" main.go
+RUN GOOS=linux GOFLAGS=-buildvcs=false GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s"
 
 
 # runner
 FROM alpine AS runner
 
-COPY --from=builder /go/multitude_rabbitmq_exporter/main /main
+COPY --from=builder /go/multitude_rabbitmq_exporter/rabbitmq_exporter /rabbitmq_exporter
 
 # 将时区设置为东八区
 #RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
@@ -27,7 +27,7 @@ COPY --from=builder /go/multitude_rabbitmq_exporter/main /main
 
 WORKDIR /
 
-ENTRYPOINT [ "/main"]
+ENTRYPOINT [ "/rabbitmq_exporter"]
 
 
 
