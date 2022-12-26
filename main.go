@@ -131,24 +131,24 @@ func resourceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var (
-		re      *multiRegistry
-		found   bool
-		address string
+		re    *multiRegistry
+		found bool
+		//address string
 	)
 	if re, found = cache.Get(req.String()); !found {
 		//check url
 		if !strings.Contains(req.Address, "http") {
-			address = "http://" + req.Address
+			req.Address = "http://" + req.Address
 		}
 
-		if valid, _ := regexp.MatchString("https?://[a-zA-Z.0-9]+", strings.ToLower(address)); !valid {
+		if valid, _ := regexp.MatchString("https?://[a-zA-Z.0-9]+", strings.ToLower(req.Address)); !valid {
 			w.WriteHeader(http.StatusBadRequest)
 			unescape, _ := url.QueryUnescape(r.URL.RawQuery)
 			_, _ = w.Write([]byte(err.Error() + unescape))
 			return
 		}
 
-		if err := checkCurl(address); err != nil {
+		if err := checkCurl(req.Address); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			unescape, _ := url.QueryUnescape(r.URL.RawQuery)
 			_, _ = w.Write([]byte(err.Error() + unescape))
@@ -157,7 +157,7 @@ func resourceHandler(w http.ResponseWriter, r *http.Request) {
 
 		//get config
 		var c = config
-		c.RabbitURL = address
+		c.RabbitURL = req.Address
 		exporter := newExporter(&c)
 		re = NewMultiRegistry(exporter)
 
